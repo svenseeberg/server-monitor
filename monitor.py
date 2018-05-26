@@ -77,6 +77,7 @@ def check_port(host, port):
 
 
 def check_ping(host):
+    print("        Pinging: "+host)
     try:
         subprocess.check_output("ping -c 1 " + host, stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as e:
@@ -85,6 +86,7 @@ def check_ping(host):
 
 
 def check_url(url):
+    print("        Downloading: "+url)
     r = requests.get(url)
     return requests.codes.ok
 
