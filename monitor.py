@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 
+import requests # non-native dependency
 import configparser
-import requests
 import os
 import socket
 import subprocess
 import smtplib
+import json
 from email.mime.text import MIMEText
 
+failed_file = "/tmp/server-monitor-failed"
+failed = []
+notify_cycles = 1
 
 def read_config():
     global services
@@ -16,6 +20,28 @@ def read_config():
     services.read('monitor.ini')
     msg_cfg = configparser.ConfigParser()
     msg_cfg.read('alert.ini')
+
+
+def read_failed():
+    global prev_failed
+    prev_failed = {}
+    if os.path.isfile(failed_file):
+        with open(failed_file) as f:
+            lines = f.read().splitlines()
+            for line in lines:
+                line = line.split(',')
+                prev_failed[line[0]] = {'cycles': line[1]}
+    else:
+        prev_failed = {}
+
+def write_failed():
+    with open(failed_file, "w") as f:
+        for line in failed:
+            if line in prev_failed:
+                f.write(line+','+str(int(prev_failed[line]['cycles'])+1))
+            else:
+                f.write(line + ',1')
+            f.write("\n")
 
 
 def check_status():
@@ -63,6 +89,9 @@ def check_url(url):
 
 
 def alert(service):
+    failed.append(service)
+    if not service in prev_failed or not int(prev_failed[service]['cycles'])+1 == int(services[service]['cycles']):
+        return
     message = "Warning: " + service + " not available!"
     if services.has_option(service, 'email'):
         for recipient in services[service]['email'].split(' '):
@@ -78,7 +107,12 @@ def send_sms(recipient, message):
       'message': message,
       'key': msg_cfg['SMS']['textbelt_key'],
     })
-    print(r.content)
+    result = json.loads(r.content.decode('utf-8'))
+    if result['success'] == True:
+        print("        Notified: "+recipient)
+        return True
+    else:
+        return False
 
 
 def send_mail(recipient, message):
@@ -95,8 +129,15 @@ def send_mail(recipient, message):
     if msg_cfg['EMAIL']['smtp_user'] and msg_cfg['EMAIL']['smtp_password']:
         smtp.login(msg_cfg['EMAIL']['smtp_user'], msg_cfg['EMAIL']['smtp_password'])
     smtp.send_message(msg)
-    smtp.quit() 
+    result = smtp.quit()
+    if result[0] == 221:
+        print("        Notified: "+recipient)
+        return True
+    else:
+        return False
 
 
 read_config()
+read_failed()
 check_status()
+write_failed()
