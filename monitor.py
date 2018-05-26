@@ -13,6 +13,7 @@ failed_file = "/tmp/server-monitor-failed"
 failed = []
 notify_cycles = 1
 
+
 def read_config():
     global services
     global msg_cfg
@@ -99,7 +100,9 @@ def alert(service):
     if services.has_option(service, 'sms'):
         for recipient in services[service]['sms'].split(' '):
             send_sms(recipient, message)
-
+    if services.has_option(service, 'slack'):
+        for recipient in services[service]['slack'].split(' '):
+            send_slack(recipient, message)
 
 def send_sms(recipient, message):
     r = requests.post('https://textbelt.com/text', {
@@ -137,7 +140,23 @@ def send_mail(recipient, message):
         return False
 
 
-read_config()
-read_failed()
-check_status()
-write_failed()
+def send_slack(recipient, message):
+    r = requests.post('https://hooks.slack.com/services/T00000000/B00000000/'+recipient, {
+      'text': message,
+    })
+    result = json.loads(r.content.decode('utf-8'))
+    if result['success'] == True:
+        print("        Notified: Slack token "+recipient)
+        return True
+    else:
+        return False
+
+
+def main():
+    read_config()
+    read_failed()
+    check_status()
+    write_failed()
+
+
+main()
