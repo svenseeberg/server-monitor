@@ -66,6 +66,7 @@ def check_status():
 def check_port(host, port):
     print("        Establishing connection: "+host+":"+port)
     s = socket.socket()
+    s.settimeout(30)
     try:
         s.connect((host, int(port)))
     except Exception as e:
