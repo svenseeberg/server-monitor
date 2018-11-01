@@ -88,7 +88,10 @@ def check_ping(host):
 
 def check_url(url):
     print("        Downloading: "+url)
-    r = requests.get(url)
+    try:
+        r = requests.get(url, timeout=2)
+    except requests.exceptions.Timeout:
+        return False
     return requests.codes.ok
 
 
