@@ -114,10 +114,13 @@ def send_sms(recipient, message):
       'key': msg_cfg['SMS']['textbelt_key'],
     })
     result = json.loads(r.content.decode('utf-8'))
+    if result['quotaRemaining'] < 10:
+        send_mail(msg_cfg['SMS']['error_mail'], "Textbelt Quota: %s" % result)
     if result['success'] == True:
         print("        Notified: "+recipient)
         return True
     else:
+        send_mail(msg_cfg['SMS']['error_mail'], "Textbelt Error: %s" % result)
         return False
 
 
