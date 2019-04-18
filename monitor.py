@@ -50,6 +50,8 @@ def check_status():
         print ("Testing "+service)
         if services[service]['type'] == 'port':
             status = check_port(services[service]['host'], services[service]['port'])
+        if services[service]['type'] == 'closed':
+            status = check_closed_port(services[service]['host'], services[service]['port'])
         elif services[service]['type'] == 'ping':
             status = check_ping(services[service]['host'])
         elif services[service]['type'] == 'url':
@@ -75,6 +77,20 @@ def check_port(host, port):
     finally:
         s.close()
     return True
+
+
+def check_closed_port(host, port):
+    print("        Testing closed port: "+host+":"+port)
+    s = socket.socket()
+    s.settimeout(3)
+    try:
+        s.connect((host, int(port)))
+    except Exception as e:
+        s.close()
+        return True
+    finally:
+        s.close()
+    return False
 
 
 def check_ping(host):
